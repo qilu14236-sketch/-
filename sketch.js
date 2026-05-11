@@ -1,10 +1,13 @@
 let video;
 let facemesh;
 let predictions = [];
+let earringImg;
 
 function preload() {
   // 初始化 ml5.faceMesh 模型 (注意大小寫)
   facemesh = ml5.faceMesh();
+  // 載入耳環圖片
+  earringImg = loadImage('pic/acc1_ring.png');
 }
 
 function setup() {
@@ -44,10 +47,9 @@ function draw() {
     let rightX = map(rightEarlobe.x, 0, video.width, -imgW / 2, imgW / 2);
     let rightY = map(rightEarlobe.y, 0, video.height, -imgH / 2, imgH / 2);
     
-    fill(255, 255, 0); // 設定黃色
-    noStroke();
-    circle(leftX, leftY, 20); // 在左耳垂畫圓
-    circle(rightX, rightY, 20); // 在右耳垂畫圓
+    // 繪製耳環圖片 (設定顯示寬高為 40x40，可依您圖片的實際比例進行修改)
+    image(earringImg, leftX, leftY, 40, 40); 
+    image(earringImg, rightX, rightY, 40, 40); 
   }
   
   pop();
