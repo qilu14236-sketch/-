@@ -123,6 +123,13 @@ function draw() {
   }
   
   pop();
+  
+  // 在影像上方顯示文字 (不受 scale(-1, 1) 影響，所以文字不會反向)
+  fill(0); // 設定文字顏色為黑色
+  noStroke();
+  textSize(32); // 設定文字大小
+  textAlign(CENTER, BOTTOM); // 對齊基準點設為水平置中、垂直靠下
+  text('414730225陳怜安', windowWidth / 2, windowHeight / 2 - imgH / 2 - 10);
 }
 
 function windowResized() {
