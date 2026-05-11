@@ -5,6 +5,7 @@ let facePredictions = [];
 let handPredictions = [];
 let earringImgs = [];
 let currentEarringImg;
+let maskImg;
 
 function preload() {
   // 初始化 ml5.faceMesh 模型 (注意大小寫)
@@ -16,6 +17,9 @@ function preload() {
   for (let i = 1; i <= 5; i++) {
     earringImgs.push(loadImage(`pic/acc${i}_ring.png`));
   }
+  
+  // 載入面具圖片
+  maskImg = loadImage('pic/mask2_blue.png');
 }
 
 function setup() {
@@ -87,6 +91,21 @@ function draw() {
   // 如果模型有辨識到臉部，且影片已經載入尺寸
   if (facePredictions.length > 0 && video.width > 0) {
     let keypoints = facePredictions[0].keypoints;
+    
+    // 取得臉部中心(鼻尖)與臉部邊界特徵點來計算面具大小與位置
+    let nose = keypoints[1];
+    let faceLeft = keypoints[234];
+    let faceRight = keypoints[454];
+    let faceTop = keypoints[10];
+    let faceBottom = keypoints[152];
+    
+    let maskX = map(nose.x, 0, video.width, -imgW / 2, imgW / 2);
+    let maskY = map(nose.y, 0, video.height, -imgH / 2, imgH / 2);
+    let faceW = dist(faceLeft.x, faceLeft.y, faceRight.x, faceRight.y) * (imgW / video.width);
+    let faceH = dist(faceTop.x, faceTop.y, faceBottom.x, faceBottom.y) * (imgH / video.height);
+    
+    // 繪製面具圖片，稍微放大 (1.3 倍) 以確保能完全覆蓋整張臉
+    image(maskImg, maskX, maskY, faceW * 1.3, faceH * 1.3);
     
     // 在 Facemesh 468 個特徵點中，177 與 401 約為左右耳垂底部的邊緣位置
     let leftEarlobe = keypoints[177];
