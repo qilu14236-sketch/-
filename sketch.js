@@ -1,13 +1,21 @@
 let video;
 let facemesh;
-let predictions = [];
-let earringImg;
+let handpose;
+let facePredictions = [];
+let handPredictions = [];
+let earringImgs = [];
+let currentEarringImg;
 
 function preload() {
   // 初始化 ml5.faceMesh 模型 (注意大小寫)
   facemesh = ml5.faceMesh();
-  // 載入耳環圖片
-  earringImg = loadImage('pic/acc1_ring.png');
+  // 初始化 ml5.handPose 模型
+  handpose = ml5.handPose();
+  
+  // 載入 5 張耳環圖片
+  for (let i = 1; i <= 5; i++) {
+    earringImgs.push(loadImage(`pic/acc${i}_ring.png`));
+  }
 }
 
 function setup() {
@@ -15,9 +23,16 @@ function setup() {
   video = createCapture(VIDEO);
   video.hide();
   
-  // 開始偵測臉部特徵，當有辨識結果時，將結果存入 predictions 陣列
+  currentEarringImg = earringImgs[0]; // 預設顯示第一張耳環圖片
+  
+  // 開始偵測臉部特徵
   facemesh.detectStart(video, results => {
-    predictions = results;
+    facePredictions = results;
+  });
+  
+  // 開始偵測手部特徵
+  handpose.detectStart(video, results => {
+    handPredictions = results;
   });
 }
 
@@ -27,6 +42,42 @@ function draw() {
   let imgW = windowWidth * 0.5;
   let imgH = windowHeight * 0.5;
   
+  // -- 手勢辨識與耳環切換邏輯 --
+  if (handPredictions.length > 0) {
+    let hand = handPredictions[0];
+    let count = 0;
+    
+    // 定義五根手指的指尖(Tip)與根部關節(Base)的索引值
+    let fingers = [
+      { tip: 4, base: 2 },   // 大拇指
+      { tip: 8, base: 6 },   // 食指
+      { tip: 12, base: 10 }, // 中指
+      { tip: 16, base: 14 }, // 無名指
+      { tip: 20, base: 18 }  // 小拇指
+    ];
+    
+    let wrist = hand.keypoints[0]; // 節點0 為手腕位置
+    
+    // 透過計算手腕到指尖與關節的距離，來判斷手指是否伸直
+    for (let i = 0; i < fingers.length; i++) {
+      let tip = hand.keypoints[fingers[i].tip];
+      let base = hand.keypoints[fingers[i].base];
+      
+      let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
+      let dBase = dist(wrist.x, wrist.y, base.x, base.y);
+      
+      // 指尖距離大於關節距離一定比例，判定為伸直
+      if (dTip > dBase * 1.2) {
+        count++;
+      }
+    }
+    
+    // 如果偵測到的手指數量在 1 ~ 5 之間，切換對應的耳環圖片
+    if (count >= 1 && count <= 5) {
+      currentEarringImg = earringImgs[count - 1];
+    }
+  }
+
   push();
   translate(windowWidth / 2, windowHeight / 2); // 將原點移到視窗正中心
   scale(-1, 1); // X 軸縮放 -1 來達成左右顛倒
@@ -34,8 +85,8 @@ function draw() {
   image(video, 0, 0, imgW, imgH); // 繪製影片，寬高為視窗的 50%
   
   // 如果模型有辨識到臉部，且影片已經載入尺寸
-  if (predictions.length > 0 && video.width > 0) {
-    let keypoints = predictions[0].keypoints;
+  if (facePredictions.length > 0 && video.width > 0) {
+    let keypoints = facePredictions[0].keypoints;
     
     // 在 Facemesh 468 個特徵點中，177 與 401 約為左右耳垂底部的邊緣位置
     let leftEarlobe = keypoints[177];
@@ -48,8 +99,8 @@ function draw() {
     let rightY = map(rightEarlobe.y, 0, video.height, -imgH / 2, imgH / 2);
     
     // 繪製耳環圖片 (設定顯示寬高為 40x40，可依您圖片的實際比例進行修改)
-    image(earringImg, leftX, leftY, 40, 40); 
-    image(earringImg, rightX, rightY, 40, 40); 
+    image(currentEarringImg, leftX, leftY, 40, 40); 
+    image(currentEarringImg, rightX, rightY, 40, 40); 
   }
   
   pop();
